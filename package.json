@@ -1,0 +1,7 @@
+{
+  "name": "ai-report-assistant",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "sh scripts/start-all.sh"
+  }
+}
