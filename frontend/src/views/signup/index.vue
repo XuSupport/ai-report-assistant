@@ -7,78 +7,104 @@
             <div class="card border-0 shadow-sm">
               <div class="card-body">
                 <h3 class="text-center">Sign up</h3>
-                <p class="text-center mb-6">Create your free Account</p>
-                <form class="mb-4 mt-5" @submit.prevent="handleRegistration">
+                <p class="text-center mb-6">Make it simple, but significant</p>
+                <form class="mb-4 mt-5" @submit.prevent="handleSubmit">
                   <div class="input-group mb-2">
-                    <input type="text" class="form-control form-control-lg" v-model="username" placeholder="Enter your username" required></div>
+                    <input type="text" class="form-control form-control-lg" placeholder="Enter your username" v-model="username" required>
+                  </div>
                   <div class="input-group mb-4">
-                    <input type="password" class="form-control form-control-lg" v-model="password" placeholder="Enter your password" required></div>
+                    <input type="password" class="form-control form-control-lg" placeholder="Enter your password" v-model="password" required>
+                  </div>
                   <div class="input-group mb-4">
-                    <input type="file" class="form-control form-control-lg" @change="handleFileChange" required></div>
+                    <input type="file" class="form-control form-control-lg" @change="handleFileChange" required>
+                  </div>
+                  <div class="form-group d-flex justify-content-between">
+                    <label class="c_checkbox">
+                      <input type="checkbox">
+                      <span class="ms-2 todo_name">Remember me</span>
+                      <span class="checkmark"></span>
+                    </label>
+                    <a class="link" href="#">Reset password</a>
+                  </div>
                   <div class="text-center mt-5">
-                    <button type="submit" class="btn btn-lg btn-primary" title="">Sign up</button></div>
+                    <button type="submit" class="btn btn-lg btn-primary" title="">Sign up</button>
+                  </div>
                 </form>
                 <p class="text-center mb-0">Already have an account?
-                  <a class="link" href="#" @click="handleSignin">Sign in</a>.</p>
-                <div class="mt-4 d-grid gap-2">
-                  <button type="button" class="btn btn-block btn-outline-google">Signup with Google</button>
-                  <button type="button" class="btn btn-block btn-outline-facebook">Signup with Facebook</button></div>
+                  <a class="link" href="#">Sign in</a>
+                </p>
               </div>
             </div>
           </div>
           <div class="signin-img d-none d-lg-block text-center">
-            <img src="../../assets/signin-img-cyan.svg" alt="Sign In Image"></div>
+            <img src="../../assets/signin-img-cyan.svg" alt="Sign In Image">
+          </div>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<script setup lang='ts'>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+<script lang="ts">
+import { defineComponent } from 'vue';
 import axios from 'axios';
 
-const username = ref<string>('');
-const password = ref<string>('');
-const file = ref<File | null>(null);
-
-const router = useRouter();
-
-function handleFileChange(event: Event) {
-  const target = event.target as HTMLInputElement;
-  if (target.files && target.files.length > 0) {
-    file.value = target.files[0];
-  }
-}
-
-function handleSignin() {
-  router.push({ name: "signin" });
-}
-
-async function handleRegistration() {
-  if (!username.value || username.value.trim() === '') return;
-  if (!password.value || password.value.trim() === '') return;
-  if (!file.value) return;
-
-  const formData = new FormData();
-  formData.append('username', username.value.trim());
-  formData.append('password', password.value.trim());
-  formData.append('image', file.value);
-
-  try {
-    const response = await axios.post('http://127.0.0.1:3000/api/regUser', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
+export default defineComponent({
+  name: 'SignUpPage',
+  data() {
+    return {
+      username: '',
+      password: '',
+      file: null as File | null,
+    };
+  },
+  methods: {
+    handleFileChange(event: Event) {
+      const target = event.target as HTMLInputElement;
+      if (target.files && target.files.length > 0) {
+        this.file = target.files[0];
       }
-    });
-    console.log('Registration successful:', response.data);
-    router.push({ name: "signin" });
-  } catch (error) {
-    console.error('Error during registration:', error);
+    },
+    async handleSubmit() {
+      if (!this.username || !this.password || !this.file) {
+        alert('Please fill in all fields.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('username', this.username);
+      formData.append('password', this.password);
+      formData.append('image', this.file);
+
+      try {
+        const response = await axios.post('http://127.0.0.1:3000/api/regUser', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        alert(response.data.message);
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          alert('Error: ' + error.response.data.message);
+        } else {
+          alert('An unexpected error occurred.');
+        }
+      }
+    },
+  },
+});
+</script>
+
+<style scoped>
+@media (min-width: 1024px) {
+  .about {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
   }
 }
-</script>
+</style>
+
 
 
 <!--<script setup lang='ts'>-->
