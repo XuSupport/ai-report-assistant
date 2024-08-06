@@ -10,7 +10,7 @@ const config = require('./config')
 const db = require('./db/db')
 
 const app = express()
-
+app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false }))
 //静态资源路径
