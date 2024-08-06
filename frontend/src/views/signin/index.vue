@@ -10,25 +10,32 @@
                 <p class="text-center mb-6">Make it simple, but significant</p>
                 <form class="mb-4 mt-5" @submit.prevent="handleLogin">
                   <div class="input-group mb-2">
-                    <input type="text" class="form-control form-control-lg" v-model="username" placeholder="Enter your username" required></div>
+                    <input type="text" class="form-control form-control-lg" v-model="username" placeholder="Enter your username" required>
+                  </div>
                   <div class="input-group mb-4">
-                    <input type="password" class="form-control form-control-lg" v-model="password" placeholder="Enter your password" required></div>
+                    <input type="password" class="form-control form-control-lg" v-model="password" placeholder="Enter your password" required>
+                  </div>
                   <div class="form-group d-flex justify-content-between">
                     <label class="c_checkbox">
                       <input type="checkbox">
                       <span class="ms-2 todo_name">Remember me</span>
                       <span class="checkmark"></span>
                     </label>
-                    <a class="link" href="#">Reset password</a></div>
+                    <a class="link" href="#">Reset password</a>
+                  </div>
                   <div class="text-center mt-5">
-                    <button type="submit" class="btn btn-lg btn-primary" title="">Sign in</button></div>
+                    <button type="submit" class="btn btn-lg btn-primary" title="">Sign in</button>
+                  </div>
                 </form>
                 <p class="text-center mb-0">Don't have an account yet
-                  <a class="link" href="#" @click="handleRegistration">Sign up</a>.</p></div>
+                  <a class="link" href="#" @click="handleRegistration">Sign up</a>.
+                </p>
+              </div>
             </div>
           </div>
           <div class="signin-img d-none d-lg-block text-center">
-            <img src="../../assets/signin-img-cyan.svg" alt="Sign In Image"></div>
+            <img src="../../assets/signin-img-cyan.svg" alt="Sign In Image">
+          </div>
         </div>
       </div>
     </div>
@@ -55,10 +62,20 @@ async function handleLogin() {
       password: password.value.trim(),
     });
 
-    console.log('Login successful:', response.data);
-    const chatId = 1722947388608; // 这里可以替换成实际的chat ID
-    router.push({ name: 'Chat', params: { uuid: chatId } });
+    if (response.data.status === 0) {
+      console.log('Login successful:', response.data);
+      const chatId = 1722947388608; // 这里可以替换成实际的chat ID
+      alert(response.data.message);
+      router.push({ name: 'Chat', params: { uuid: chatId } });
+    } else {
+      alert('Login failed: ' + response.data.message);
+    }
   } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      alert('Error: ' + error.response.data.message);
+    } else {
+      alert('An unexpected error occurred.');
+    }
     console.error('Error during login:', error);
   }
 }
@@ -67,6 +84,17 @@ function handleRegistration() {
   router.push({ name: "signup" });
 }
 </script>
+
+<style scoped>
+@media (min-width: 1024px) {
+  .about {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+  }
+}
+</style>
+
 
 <!--<template>-->
 <!--    <div id="layout" class="theme-cyan">-->

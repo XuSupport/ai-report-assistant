@@ -31,7 +31,7 @@
                   </div>
                 </form>
                 <p class="text-center mb-0">Already have an account?
-                  <a class="link" href="#">Sign in</a>
+                  <a class="link" href="#" @click="handleSignin">Sign in</a>
                 </p>
               </div>
             </div>
@@ -47,6 +47,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { useRouter } from 'vue-router';
 import axios from 'axios';
 
 export default defineComponent({
@@ -57,6 +58,13 @@ export default defineComponent({
       password: '',
       file: null as File | null,
     };
+  },
+  setup() {
+    const router = useRouter();
+    const handleSignin = () => {
+      router.push({ name: 'signin' });
+    };
+    return { handleSignin, router };
   },
   methods: {
     handleFileChange(event: Event) {
@@ -83,6 +91,9 @@ export default defineComponent({
           }
         });
         alert(response.data.message);
+        if (response.data.status === 0) {
+          this.router.push({ name: 'signin' });
+        }
       } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
           alert('Error: ' + error.response.data.message);
