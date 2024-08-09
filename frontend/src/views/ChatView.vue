@@ -1,5 +1,5 @@
 <script setup lang='ts'>
-  import { ref } from 'vue'
+import {onMounted, ref} from 'vue'
   import { useRoute } from 'vue-router'
   import { router } from '@/router'
   import { useScroll } from './hooks/useScroll'
@@ -93,18 +93,18 @@
     conversationList.value = JSON.parse(conversations)
   }
 
-  // Check if new conversation
+  // 检查是否有新对话
   if (!uuid || uuid === '0') {
     uuid = Date.now().toString()
 
-    // Initialize empty conversation
+    // 初始化空对话
     if(!conversations){
       conversationList.value.push({
-        title: 'New Chat', 
+        title: '新聊天',
         uuid: uuid, 
         isEdit: false, 
         createDate: new Date().toLocaleString(), 
-        lastChatContent: 'Hello I am ChatGPT3.5...',
+        lastChatContent: '请输入您的问题。',
         active: true
       })
     }else{
@@ -147,15 +147,15 @@
       item.active = false
     })
 
-    // Initialize an empty conversation
+    // 初始化一个空对话
     uuid = Date.now().toString()
 
     conversationList.value.unshift({
-      title: "New Chat",
+      title: "新聊天",
       uuid: uuid,
       isEdit: false,
       createDate: new Date().toLocaleString(),
-      lastChatContent: 'Hello I am ChatGPT3.5...',
+      lastChatContent: '嗨，我能帮什么忙吗？',
       active: true
     })
 
@@ -262,7 +262,6 @@
       }
     })
   }
-
   function handleBackChat(){
     showTab.value = 'nav-tab-chat'
     tabWidth.value = ''
@@ -309,7 +308,17 @@
 
     onConversation()
   }
-
+  const userImage = ref<string | null>(null);
+onMounted(() => {
+  const storedImage = window.localStorage.getItem("userImage");
+  if (storedImage) { // 判断是否获取到图片地址
+    userImage.value = storedImage;
+  } else { // 获取失败
+    //  可以在这里添加处理逻辑，例如：
+    console.error("获取用户图片失败");
+    userImage.value = '默认图片地址'; // 使用默认图片
+  }
+});
   // Stream request to ChatGPT3.5
   async function onConversation() {
     let message = prompt.value
@@ -465,10 +474,10 @@
 
 <template>
   <div id="layout" class="theme-cyan">
-      <!-- Sidebar -->
+      <!-- 侧边栏 -->
       <div class="navigation navbar justify-content-center py-xl-4 py-md-3 py-0 px-3">
         <a href="#" title="ChatGPT-UI" class="brand">
-          <svg class="logo" viewBox="0 0 128 128" width="24" height="24" data-v-c0161dce=""><path fill="#42b883" d="M78.8,10L64,35.4L49.2,10H0l64,110l64-110C128,10,78.8,10,78.8,10z" data-v-c0161dce=""></path><path fill="#35495e" d="M78.8,10L64,35.4L49.2,10H25.6L64,76l38.4-66H78.8z" data-v-c0161dce=""></path></svg>
+          <img v-show="userImage" class="logo" :src="userImage ?? ''" alt="User Image" width="24" height="24">
         </a>
         <div class="nav flex-md-column nav-pills flex-grow-1" role="tablist" aria-orientation="vertical">
           <a class="mb-xl-3 mb-md-2 nav-link active"  data-toggle="pill" href="#" role="tab">
@@ -490,19 +499,25 @@
           <i class="zmdi zmdi-menu"></i> <!-- Menu -->
         </button>
       </div>
-      <!-- Sidebar -->
+      <!-- 侧边栏 -->
       <div class="sidebar border-end py-xl-4 py-3 px-xl-4 px-3" :style="tabWidth">
         <div class="tab-content">
-          <!-- Chat Records -->
+          <!-- 聊天记录 -->
           <div class="tab-pane fade active show" id="nav-tab-chat" role="tabpanel" v-if="showTab === 'nav-tab-chat'">
             <div class="d-flex justify-content-between align-items-center mb-4">
-              <h3 class="mb-0 text-primary">ChatGPT-UI</h3>
+              <h3 class="mb-0" style="color: #F0CA9A; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);">数据报表智能助手</h3>
+
               <div>
-                <button class="btn btn-dark" type="button"  @click="handleAdd">New Chat</button></div>
+                <button class="btn click-animate" type="button" @click="handleAdd" style="background-color:#F6C472; color:white; border:none; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2), inset 0px 2px 3px rgba(255, 255, 255, 0.2);">
+                  新聊天
+                </button>
+              </div>
+
             </div>
+
             <ul class="chat-list">
               <li class="header d-flex justify-content-between ps-3 pe-3 mb-1">
-                <span>RECENT CHATS</span>
+                <span>最近记录</span>
               </li>
               <li v-for="(item, index) in conversationList" :class="[item.active ? 'active' : '']" @click="handleSwitch(item.uuid)">
                 <div class="hover_action">
@@ -514,29 +529,32 @@
                     <div class="media">
                       <div class="avatar me-3">
                         <span class="status rounded-circle"></span>
-                        <img class="avatar rounded-circle" :style="[item.active ? 'filter:grayscale(0)' : 'filter:grayscale(1)']" src="../assets/chatgpt.jpg" alt="avatar"></div>
+                        <img class="avatar rounded-circle" :style="[item.active ? 'filter:grayscale(0)' : 'filter:grayscale(1)']" src="../assets/tubiao.jpg" alt="avatar"></div>
                       <div class="media-body overflow-hidden">
                         <div class="d-flex align-items-center mb-1">
-                          <h6 class="text-truncate mb-0 me-auto">{{ item.title }}</h6>
-                          <p class="small text-muted text-nowrap ms-4 mb-0">{{ item.createDate }}</p></div>
-                        <div class="text-truncate">{{ item.lastChatContent }}</div></div>
+                          <h6 class="text-truncate mb-0 me-auto semi-transparent-text">{{ item.title }}</h6>
+                          <p class="small text-muted text-nowrap ms-4 mb-0 ">{{ item.createDate }}</p>
+                        </div>
+                        <div class="text-truncate semi-transparent-text">{{ item.lastChatContent }}</div>
+                      </div>
                     </div>
                   </div>
                 </a>
               </li>
             </ul>
           </div>
-          <!-- end Chat Records -->
+          <!-- 结束聊天记录 -->
+
           <!-- PDF Preview -->
           <div class="tab-pane fade active show" id="nav-tab-doc" role="tabpanel" v-if="showTab === 'nav-tab-doc'">
             <div class="d-flex justify-content-between align-items-center mb-4">
               <h3 class="mb-0 text-primary">ChatGPT-PDF</h3>
               <div>
-                <button class="btn btn-dark" type="button"  @click="handleBackChat">Back Chat</button></div>
+                <button class="btn btn-dark" type="button"  @click="handleBackChat">返回聊天</button></div>
             </div>
             <ul class="chat-list">
               <li class="header d-flex justify-content-between ps-3 pe-3 mb-1">
-                <span>PREVIEW</span>
+                <span>预览</span>
               </li>
               <li>
                 <vue-pdf-app style="height: 100vh;" :config="config" :pdf="pdfFile"></vue-pdf-app>
@@ -548,7 +566,7 @@
       </div>
       <div class="main px-xl-5 px-lg-4 px-3">
         <div class="chat-body">
-          <!-- Chat Box Header -->
+          <!-- 右侧聊天框标题 -->
           <div class="chat-header border-bottom py-xl-4 py-md-3 py-2">
             <div class="container-xxl">
               <div class="row align-items-center">
@@ -556,11 +574,11 @@
                   <div class="media">
                     <div class="me-3 show-user-detail">
                       <span class="status rounded-circle"></span>
-                      <img class="avatar rounded-circle" src="../assets/chatgpt.jpg" alt="avatar"></div>
+                      <img class="avatar rounded-circle" src="../assets/tubiao.jpg" alt="avatar"></div>
                     <div class="media-body overflow-hidden">
                       <div class="d-flex align-items-center mb-1">
-                        <h6 class="text-truncate mb-0 me-auto">ChatGPT 3.5</h6></div>
-                      <div class="text-truncate">Powered By OpenAI</div></div>
+                        <h6 class="text-truncate mb-0 me-auto">智能助手</h6></div>
+                      <div class="text-truncate">由OpenAI提供技术支持</div></div>
                   </div>
                 </div>
               </div>
@@ -571,7 +589,7 @@
           <div class="chat-content" id="scrollRef" ref="scrollRef">
             <div class="container-xxl">
               <ul class="list-unstyled py-4" v-for="(item, index) of messageList">
-                <!-- Right Message -->
+                <!-- 右侧信息 -->
                 <li class="d-flex message right">
                   <div class="message-body">
                     <span class="date-time text-muted"></span>
@@ -596,10 +614,12 @@
                   </div>
                 </li>
                 <!-- end Right Message -->
-                <!-- Left Message -->
+
+
+                <!-- 左侧信息 -->
                 <li class="d-flex message" v-if="item.receive">
                   <div class="mr-lg-3 me-2">
-                    <img class="avatar sm rounded-circle" src="../assets/chatgpt.jpg" alt="avatar"></div>
+                    <img class="avatar sm rounded-circle" src="../assets/tubiao.jpg" alt="avatar"></div>
                   <div class="message-body">
                     <span class="date-time text-muted">{{ item.receive.model }}</span>
                     <div class="message-row d-flex align-items-center">
@@ -608,15 +628,17 @@
                       </div>
                     </div>
                     <div class="message-row d-flex align-items-center" v-if="!stopRespondingSign">
-                      <button type="button" class="btn btn-outline-primary btn-rounded mb-1 me-1" @click="handleStopResponding(item)">Stop Responding</button>
+                      <button type="button" class="btn btn-outline-primary btn-rounded mb-1 me-1" @click="handleStopResponding(item)">停止回答</button>
                     </div>
                   </div>
                 </li>
                 <!-- end Left Message -->
+
                 <!-- Loading Message -->
                 <li class="d-flex message" v-if="item.loading">
                   <div class="mr-lg-3 me-2">
-                    <img class="avatar sm rounded-circle" src="../assets/chatgpt.jpg" alt="avatar"></div>
+<!--                    修改过图标-->
+                    <img class="avatar sm rounded-circle" src="../assets/tubiao.jpg" alt="avatar"></div>
                   <div class="message-body">
                     <div class="message-row d-flex align-items-center">
                       <div class="message-content p-3">
@@ -628,7 +650,7 @@
                       </div>
                     </div>
                     <div class="message-row d-flex align-items-center" v-if="!stopRespondingSign">
-                      <button type="button" class="btn btn-outline-primary btn-rounded mb-1 me-1" @click="handleStopResponding(item)">Stop Responding</button>
+                      <button type="button" class="btn btn-outline-primary btn-rounded mb-1 me-1" @click="handleStopResponding(item)">停止回答</button>
                     </div>
                   </div>
                 </li>
@@ -637,13 +659,13 @@
             </div>
           </div>
           <!-- Message Input Box -->
-          <div class="chat-footer border-top py-xl-4 py-lg-2 py-2">
+          <div class="chat-footer py-lg-2 py-2" style="background-color: #F4F4F4; border-radius: 60px; padding: 0.5em; margin-bottom: 1.5em;">
             <div class="container-xxl">
               <div class="row">
                 <div class="col-12">
                   <form @submit.prevent="handleSubmit">
-                    <div class="input-group align-items-center">
-                      <input type="text" v-model="prompt" class="form-control border-0 pl-0" placeholder="Type your message...">
+                    <div class="input-group align-items-center" style="border-radius: 25px;">
+                      <input type="text" v-model="prompt" class="form-control border-0 pl-0 a" placeholder="请输入您的问题" style="background-color: #F4F4F4; border: none; height: 4em;font-size: 1.1em;">
                       <div class="attachment" v-show="fileUploadCard" @click="handleBackDoc">
                         <div class="media mt-2">
                           <div class="avatar me-2">
@@ -660,25 +682,27 @@
                       <div class="input-group-append">
                         <span class="input-group-text border-0">
                           <input type="file" accept="application/pdf" id="fileInput" ref="file" @change="handleUpload" style="display:none">
-                          <button class="btn btn-sm btn-link text-muted" data-toggle="tooltip" @click="($refs.file as HTMLInputElement).click()" title="" type="button" data-original-title="Attachment">
-                            <i class="zmdi zmdi-attachment font-22"></i>
+                            <button class="btn btn-sm btn-link text-muted "  @click="($refs.file as HTMLInputElement).click()" title="Attachment" type="button">
+                              <i class="zmdi zmdi-attachment-alt" style="font-size: 26px; font-weight: bold; color: black;"></i>
+                            </button>
+                        </span>
+                      </div>
+                      <div class="input-group-append" style="border-radius: 20px; overflow: hidden;">
+                        <span class="input-group-text border-0 pr-0" style="border-radius: 20px; overflow: hidden;">
+                          <button type="submit" class="btn d-flex justify-content-center align-items-center" :class="{'btn-primary': prompt, 'btn-disabled': !prompt}" style="border-radius: 50%; width: 40px; height: 40px;" :disabled="!prompt">
+                            <i class="zmdi zmdi-forward" style="font-size: 25px; transform: rotate(-90deg);"></i>
                           </button>
                         </span>
                       </div>
-                      <div class="input-group-append">
-                        <span class="input-group-text border-0 pr-0">
-                          <button type="submit" class="btn btn-primary" :disabled="buttonDisabled" @click="handleSubmit">
-                            <i class="zmdi zmdi-mail-send"></i>
-                          </button>
-                        </span>
-                      </div>
+
+
                     </div>
                   </form>
                 </div>
               </div>
             </div>
           </div>
-            <!-- end Message Input Box -->
+          <!-- end Message Input Box -->
         </div>
       </div>
       <!-- Empty Page -->
@@ -700,9 +724,51 @@
       <!-- end Empty Page -->
   </div>
 </template>
+
+
 <style>
 .github-markdown-body{
   padding: 0px 0px 0px 0px;
   margin-bottom: -16px;
+}
+.semi-transparent-text {
+  opacity: 0.6;
+}
+.btn-primary {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+
+.btn-disabled {
+  background-color: #BFBFBF !important;
+  border-color: #BFBFBF !important;
+}
+
+
+.click-animate {
+  position: relative;
+  overflow: hidden;
+}
+.click-animate::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.5s ease-out;
+}
+.click-animate:active::after {
+  transform: translate(-50%, -50%) scale(2);
+  transition: transform 0.2s ease-out;
+}
+.logo {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%; /* 将图片变成圆形 */
+  object-fit: cover; /* 保证图片比例不变形 */
 }
 </style>

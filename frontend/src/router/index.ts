@@ -6,7 +6,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'Root',
-    redirect: '/chat',
+    redirect: '/signin',
     children: [
       {
         path: '/chat/:uuid?',

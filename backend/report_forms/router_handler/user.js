@@ -73,17 +73,20 @@ exports.login = (req, res) => {
         } else if (results.length !== 1) {
             res.cc('用户不存在！')
         } else {
+            console.log(results[0]);
             const compareResult = bcrypt.compare(userinfo.password, results[0].password, (compareErr, compareResult) => {
                 if (compareErr) return res.cc('密码比对失败');
                 if (!compareResult) return res.cc('密码错误！')
                 //只保留id和username信息在token字符串中
                 const user = {...results[0], password: '', image: ''}
                 const tokenStr = jwt.sign(user, config.jwtSecretKey, {expiresIn: config.expiresIn})
+                console.log(results[0].image)
                 res.send({
                     status: 0,
                     message: '登录成功！',
                     tokenStr: 'Bearer ' + tokenStr,
-                    username: results[0].username
+                    username: results[0].username,
+                    userImage: results[0].image // 将用户头像URL添加到响应中
                 })
             })
         }
