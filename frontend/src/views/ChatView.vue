@@ -6,13 +6,16 @@ import {onMounted, ref} from 'vue'
   import VuePdfApp from "vue3-pdf-app"
   import "vue3-pdf-app/dist/icons/main.css"
   import { encode } from 'gpt-tokenizer'
+  import { jsPDF } from "jspdf";
 
 
   const { scrollRef, scrollToBottom } = useScroll()
 
+
   // Conversation and PDF preview panel toggle control
   let showTab = ref<string>("nav-tab-chat")
   let tabWidth = ref<string>("")
+
 
   // vue3-pdf-app UI configuration
   let pdfFile = ref<string>("")
@@ -207,100 +210,217 @@ import {onMounted, ref} from 'vue'
 
   var fileContent = ref()
 
-  
-  // Handle file upload
-  function handleUpload(e: Event) {
-    const target = e.target as HTMLInputElement;
-    if(target.files && target.files[0].size >= 5 * 1024 * 1024){
-      alert('Maximum file size limit is 5MB')
-      return
-    }else if (!target.files || target.files.length === 0) {
-      alert('Please select a file')
-      return
-    }
+async function handleUpload(e: Event) {
+  const target = e.target as HTMLInputElement;
 
-    // Set file upload style
-    fileName.value = target.files[0].name
-    fileSize.value = target.files[0].size
-    formatFileSize()
+  // 验证文件大小是否超过限制
+  if (target.files && target.files[0].size >= 5 * 1024 * 1024) {
+    alert('Maximum file size limit is 5MB');
+    return;
+  } else if (!target.files || target.files.length === 0) {
+    alert('Please select a file');
+    return;
+  }
 
-    // Preview PDF
-    showTab.value = 'nav-tab-doc'
-    tabWidth.value = 'width: 60%'
+  const file = target.files[0];
+  const fileType = file.type;
 
-    pdfFile.value = URL.createObjectURL(target.files[0])
+  // 如果是 PDF 文件，直接处理
+  if (fileType === 'application/pdf') {
+    await handlePdfUpload(file);
+  }
+  // 如果是图像文件，先转换为 PDF
+  else if (fileType.startsWith('image/')) {
+    await handleImageToPdfUpload(file);
+  } else {
+    alert('Unsupported file type');
+    return;
+  }
+}
 
-    // Upload file and extract content
-    const formData = new FormData()
-    formData.append('doc', target.files[0])
+// 处理 PDF 文件上传
+async function handlePdfUpload(file: File) {
+  // 设置文件上传样式
+  fileName.value = file.name;
+  fileSize.value = file.size;
+  formatFileSize();
 
-    fetch(import.meta.env.VITE_API_UPLOAD, {
+  // 预览 PDF
+  showTab.value = 'nav-tab-doc';
+  tabWidth.value = 'width: 60%';
+  pdfFile.value = URL.createObjectURL(file);
+
+  // 上传文件并提取内容
+  await uploadAndExtractContent(file);
+}
+
+// 将图像文件转换为 PDF 并上传
+async function handleImageToPdfUpload(file: File) {
+  const reader = new FileReader();
+
+  reader.onload = async function(event) {
+    const img = new Image();
+    img.src = event.target?.result as string;
+
+    img.onload = async function() {
+      const pdf = new jsPDF({
+        orientation: img.width > img.height ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [img.width, img.height],
+      });
+
+      pdf.addImage(img, 'JPEG', 0, 0, img.width, img.height);
+      const pdfBlob = pdf.output('blob');
+
+      // 设置文件上传样式
+      fileName.value = file.name.replace(/\.[^/.]+$/, ".pdf");
+      fileSize.value = pdfBlob.size;
+      formatFileSize();
+
+      // 预览 PDF
+      showTab.value = 'nav-tab-doc';
+      tabWidth.value = 'width: 60%';
+      pdfFile.value = URL.createObjectURL(pdfBlob);
+
+      // 上传文件并提取内容
+      await uploadAndExtractContent(pdfBlob);
+    };
+  };
+
+  reader.readAsDataURL(file);
+}
+
+// 上传文件并提取内容
+async function uploadAndExtractContent(file: Blob | File) {
+  const formData = new FormData();
+  formData.append('doc', file, fileName.value);
+
+  try {
+    const response = await fetch(import.meta.env.VITE_API_UPLOAD, {
       method: 'POST',
       body: formData,
-    })
-    .then(response => response.text())
-    .catch(error => console.error('Error:', error))
-    .then(function (docContent) {
-      if (typeof docContent !== 'string') {
-        alert("Failed to extract file content")
-        return
-      }
-      
-      const tokens = encode(docContent)
+    });
 
-      if(tokens.length > 4096){
-        alert("Exceeded maximum token limit of 4096")
-        fileName.value = ''
-        fileSize.value = 0
-        formattedFileSize.value = '0B'
-      }else{
-        // Set the extracted content
-        fileContent.value = docContent
+    const docContent = await response.text();
 
-        // Show file upload card
-        fileUploadCard.value = true
-      }
-    })
-  }
-  function handleBackChat(){
-    showTab.value = 'nav-tab-chat'
-    tabWidth.value = ''
-  }
-
-  function handleBackDoc(){
-    showTab.value = 'nav-tab-doc'
-    tabWidth.value = 'width: 40%'
-  }
-
-  // Format file size in Bytes, KB, MB, GB
-  function formatFileSize() {
-    if (fileSize.value < 1024) {
-        formattedFileSize.value = fileSize.value + 'B';
-    } else if (fileSize.value < (1024*1024)) {
-        var temp = fileSize.value / 1024
-        formattedFileSize.value = temp.toFixed(2) + 'KB'
-    } else if (fileSize.value < (1024*1024*1024)) {
-        var temp = fileSize.value / (1024*1024)
-        formattedFileSize.value = temp.toFixed(2) + 'MB'
-    } else {
-        var temp = fileSize.value / (1024*1024*1024);
-        formattedFileSize.value = temp.toFixed(2) + 'GB'
+    if (typeof docContent !== 'string') {
+      alert('Failed to extract file content');
+      return;
     }
+
+    const tokens = encode(docContent);
+
+    if (tokens.length > 4096) {
+      alert('Exceeded maximum token limit of 4096');
+      fileName.value = '';
+      fileSize.value = 0;
+      formattedFileSize.value = '0B';
+    } else {
+      // 设置提取的内容
+      fileContent.value = docContent;
+
+      // 显示文件上传卡片
+      fileUploadCard.value = true;
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Failed to upload the file');
   }
+}
 
-  
-  // stop Responding sign
-  const stopRespondingSign = ref<boolean>(true)
 
-  // Click Button of Stop Responding
-  function handleStopResponding(item: Message){
-    item.loading = false
-    stopRespondingSign.value = true
+  //Handle file upload
+  // function handleUpload(e: Event) {
+  //   const target = e.target as HTMLInputElement;
+  //   if(target.files && target.files[0].size >= 5 * 1024 * 1024){
+  //     alert('Maximum file size limit is 5MB')
+  //     return
+  //   }else if (!target.files || target.files.length === 0) {
+  //     alert('Please select a file')
+  //     return
+  //   }
+  //
+  //   // Set file upload style
+  //   fileName.value = target.files[0].name
+  //   fileSize.value = target.files[0].size
+  //   formatFileSize()
+  //
+  //   // Preview PDF
+  //   showTab.value = 'nav-tab-doc'
+  //   tabWidth.value = 'width: 60%'
+  //
+  //   pdfFile.value = URL.createObjectURL(target.files[0])
+  //
+  //   // Upload file and extract content
+  //   const formData = new FormData()
+  //   formData.append('doc', target.files[0])
+  //
+  //   fetch(import.meta.env.VITE_API_UPLOAD, {
+  //     method: 'POST',
+  //     body: formData,
+  //   })
+  //   .then(response => response.text())
+  //   .catch(error => console.error('Error:', error))
+  //   .then(function (docContent) {
+  //     if (typeof docContent !== 'string') {
+  //       alert("Failed to extract file content")
+  //       return
+  //     }
+  //
+  //     const tokens = encode(docContent)
+  //
+  //     if(tokens.length > 4096){
+  //       alert("Exceeded maximum token limit of 4096")
+  //       fileName.value = ''
+  //       fileSize.value = 0
+  //       formattedFileSize.value = '0B'
+  //     }else{
+  //       // Set the extracted content
+  //       fileContent.value = docContent
+  //
+  //       // Show file upload card
+  //       fileUploadCard.value = true
+  //     }
+  //   })
+  // }
 
-    // Restore button state
-    buttonDisabled.value = false
-    fileContent.value = ''
+
+function handleBackChat() {
+  showTab.value = 'nav-tab-chat';
+  tabWidth.value = '';
+}
+
+function handleBackDoc() {
+  showTab.value = 'nav-tab-doc';
+  tabWidth.value = 'width: 40%';
+}
+
+// Format file size in Bytes, KB, MB, GB
+function formatFileSize() {
+  if (fileSize.value < 1024) {
+    formattedFileSize.value = fileSize.value + 'B';
+  } else if (fileSize.value < 1024 * 1024) {
+    formattedFileSize.value = (fileSize.value / 1024).toFixed(2) + 'KB';
+  } else if (fileSize.value < 1024 * 1024 * 1024) {
+    formattedFileSize.value = (fileSize.value / (1024 * 1024)).toFixed(2) + 'MB';
+  } else {
+    formattedFileSize.value = (fileSize.value / (1024 * 1024 * 1024)).toFixed(2) + 'GB';
   }
+}
+
+// stop Responding sign
+const stopRespondingSign = ref<boolean>(true);
+
+// Click Button of Stop Responding
+function handleStopResponding(item: Message) {
+  item.loading = false;
+  stopRespondingSign.value = true;
+
+  // Restore button state
+  buttonDisabled.value = false;
+  fileContent.value = '';
+}
+
 
   // Submit message
   function handleSubmit() {
@@ -323,6 +443,7 @@ onMounted(() => {
   async function onConversation() {
     let message = prompt.value
     if (!message || message.trim() === '')
+
       return
 
     // Clear input box and disable button
@@ -681,7 +802,7 @@ onMounted(() => {
                       </div>
                       <div class="input-group-append">
                         <span class="input-group-text border-0">
-                          <input type="file" accept="application/pdf" id="fileInput" ref="file" @change="handleUpload" style="display:none">
+                          <input type="file" accept="application/pdf, image/jpeg" id="fileInput" ref="file" @change="handleUpload" style="display:none">
                             <button class="btn btn-sm btn-link text-muted "  @click="($refs.file as HTMLInputElement).click()" title="Attachment" type="button">
                               <i class="zmdi zmdi-attachment-alt" style="font-size: 26px; font-weight: bold; color: black;"></i>
                             </button>
